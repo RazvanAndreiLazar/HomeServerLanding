@@ -1,0 +1,12 @@
+[
+  {
+    "id": "immich",
+    "name": "Immich",
+    "icon": "📷",
+    "description": "Photos and videos",
+    "url": "https://immich.{tailnet}",
+    "guestUrl": "https://immich.{tailnet}/auth/login?autoLaunch=0",
+    "lanUrl": "http://{lan}:2283",
+    "logoutUrl": "https://immich.{tailnet}/api/auth/logout"
+  }
+]

@@ -1,0 +1,39 @@
+# gateway/docker-compose.yml
+# Caddy (entry point, web pages) + Authelia (login, single sign-on).
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"          # only reachable from the server itself; tailscale serve forwards here
+    environment:
+      SERVER_NAME: ${SERVER_NAME:?set SERVER_NAME in .env}
+      LAN_IP: ${LAN_IP:?set LAN_IP in .env}
+    volumes:
+      - ./caddy:/etc/caddy:ro          # Caddyfile + routes/*.caddy
+      - ../web:/srv/web:ro             # landing page, login page, shared assets
+      - caddy_data:/data
+    depends_on:
+      - authelia
+
+  authelia:
+    image: authelia/authelia:4.39      # pinned; read the release notes before changing
+    restart: unless-stopped
+    volumes:
+      - ./authelia/config:/config
+      - ./authelia/secrets:/secrets:ro
+      - ./authelia/assets:/assets:ro   # logo and favicon for Authelia's own pages
+    environment:
+      TZ: Europe/Bucharest
+      SERVER_NAME: ${SERVER_NAME:?set SERVER_NAME in .env}
+      IMMICH_HOST: ${IMMICH_HOST:?set IMMICH_HOST in .env}
+      X_AUTHELIA_CONFIG_FILTERS: template   # lets configuration.yml read env vars and secret files
+      AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: /secrets/jwt
+      AUTHELIA_SESSION_SECRET_FILE: /secrets/session
+      AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: /secrets/storage
+      AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE: /secrets/oidc_hmac
+
+volumes:
+  caddy_data:

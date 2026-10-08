@@ -1,0 +1,75 @@
+# gateway/authelia/config/configuration.yml
+# The machine name comes from SERVER_NAME in .env (template filter enabled in docker-compose.yml).
+# Secrets are NOT in this file; they come from /secrets via docker-compose.yml.
+
+server:
+  address: 'tcp://:9091/auth'          # portal and API live under https://<SERVER_NAME>/auth
+                                       # (Caddy serves our own login page at /auth/ itself)
+  asset_path: '/assets/'               # logo.png and favicon.ico for Authelia's own pages
+
+log:
+  level: 'info'
+
+theme: 'auto'                          # follows light/dark mode
+
+authentication_backend:
+  password_reset:
+    disable: true                      # no email server; you reset passwords by editing the users file
+  file:
+    path: '/config/users_database.yml'
+    watch: true                        # picks up edits to the users file without a restart
+    password:
+      algorithm: 'argon2'
+
+access_control:
+  default_policy: 'deny'               # anything not listed below is refused
+  rules:
+    - domain: '{{ env "SERVER_NAME" }}'
+      resources:
+        - '^/whoami([/?].*)?$'
+      subject: 'group:family'
+      policy: 'one_factor'             # password only; inside the tailnet this is reasonable
+
+session:
+  cookies:
+    - domain: '{{ env "SERVER_NAME" }}'  # exact machine name, not *.ts.net
+      authelia_url: 'https://{{ env "SERVER_NAME" }}/auth'
+      default_redirection_url: 'https://{{ env "SERVER_NAME" }}/'
+      expiration: '1h'                 # normal session
+      inactivity: '30m'
+      remember_me: '30d'               # when "Remember me" is ticked
+
+regulation:                            # brute-force protection
+  max_retries: 5
+  find_time: '10m'
+  ban_time: '15m'
+
+storage:
+  local:
+    path: '/config/db.sqlite3'
+
+notifier:
+  filesystem:
+    filename: '/config/notification.txt'   # messages are written here instead of emailed
+
+identity_providers:
+  oidc:
+    jwks:
+      - key_id: 'main'
+        algorithm: 'RS256'
+        use: 'sig'
+        key: {{ secret "/secrets/oidc_jwks.pem" | mindent 10 "|" | msquote }}
+    clients:
+      - client_id: 'immich'
+        client_name: 'Immich'
+        client_secret: '{{ secret "/secrets/immich_client_digest" }}'
+        public: false
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'          # no "allow Immich?" screen for family
+        redirect_uris:
+          - 'https://{{ env "IMMICH_HOST" }}/auth/login'
+          - 'https://{{ env "IMMICH_HOST" }}/user-settings'
+          - 'app.immich:///oauth-callback'  # mobile app
+        scopes: ['openid', 'profile', 'email']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_post'

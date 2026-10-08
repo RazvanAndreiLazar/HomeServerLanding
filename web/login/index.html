@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Log In · Home Server</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/theme.css">
+</head>
+<body>
+<main>
+  <form class="panel" id="login" novalidate>
+    <h1>Log in</h1>
+    <p class="sub">Use your home account.</p>
+    <p class="alert" id="error" role="alert" hidden></p>
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+    </div>
+    <label class="checkbox"><input type="checkbox" id="remember"> Remember me</label>
+    <button type="submit" class="btn primary block" id="submit">Log in</button>
+    <a class="back" href="/">← Back to the home page</a>
+  </form>
+</main>
+<script src="/assets/common.js"></script>
+<script src="/assets/login.js"></script>
+</body>
+</html>
