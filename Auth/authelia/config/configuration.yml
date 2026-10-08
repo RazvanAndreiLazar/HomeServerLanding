@@ -49,3 +49,25 @@ storage:
 notifier:
   filesystem:
     filename: '/config/notification.txt'   # messages are written here instead of emailed
+
+identity_providers:
+  oidc:
+    jwks:
+      - key_id: 'main'
+        algorithm: 'RS256'
+        use: 'sig'
+        key: {{ secret "/secrets/oidc_jwks.pem" | mindent 10 "|" | msquote }}
+    clients:
+      - client_id: 'immich'
+        client_name: 'Immich'
+        client_secret: '{{ secret "/secrets/immich_client_digest" }}'
+        public: false
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'          # no "allow Immich?" screen for family
+        redirect_uris:
+          - 'https://{{ env "IMMICH_HOST" }}/auth/login'
+          - 'https://{{ env "IMMICH_HOST" }}/user-settings'
+          - 'app.immich:///oauth-callback'  # mobile app
+        scopes: ['openid', 'profile', 'email']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_post'

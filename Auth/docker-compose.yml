@@ -31,6 +31,8 @@ services:
       AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: /secrets/jwt
       AUTHELIA_SESSION_SECRET_FILE: /secrets/session
       AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: /secrets/storage
+      IMMICH_HOST: ${IMMICH_HOST:?set IMMICH_HOST in .env}
+      AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE: /secrets/oidc_hmac
 
 volumes:
   caddy_data:
