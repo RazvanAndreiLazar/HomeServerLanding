@@ -1,0 +1,65 @@
+# apps/opencloud/docker-compose.yml
+# OpenCloud (files, sharing, sync) with Authelia as the login (OpenID Connect).
+# Based on opencloud-eu/opencloud-compose (docker-compose.yml + external-proxy/opencloud.yml)
+# and Authelia's openCloud integration guide (tested there with openCloud 7.2.4 / Authelia 4.39).
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  opencloud:
+    image: opencloudeu/opencloud:7.2.4      # stable channel; pinned, read the release notes before changing
+    restart: unless-stopped
+    user: ${OC_UID_GID:-1000:1000}          # owner of OPENCLOUD_CONFIG_DIR and OPENCLOUD_DATA_DIR
+    entrypoint: ["/bin/sh"]
+    # "opencloud init" writes opencloud.yaml with random secrets on the first start and fails
+    # harmlessly afterwards because the file exists.
+    command: ["-c", "opencloud init || true; opencloud server"]
+    ports:
+      - "127.0.0.1:9200:9200"               # only the server itself; tailscale serve forwards here
+    # Uncomment if the container can't resolve <SERVER_NAME> (setup.sh checks this):
+    # extra_hosts:
+    #   - "${SERVER_NAME}:${SERVER_TAILSCALE_IP}"
+    environment:
+      OC_URL: https://${OPENCLOUD_HOST:?set OPENCLOUD_HOST in .env}
+      PROXY_HTTP_ADDR: 0.0.0.0:9200
+      PROXY_TLS: "false"                    # tailscale serve terminates HTTPS
+      OC_INSECURE: "false"                  # Authelia has a valid certificate (tailscale serve)
+      OC_LOG_LEVEL: info
+      OC_DEFAULT_LANGUAGE: ${OC_DEFAULT_LANGUAGE:-en}
+      FRONTEND_CHECK_FOR_UPDATES: "false"
+      # Password of OpenCloud's built-in "admin" account (only usable for maintenance;
+      # web login goes through Authelia).
+      IDM_ADMIN_PASSWORD: ${OC_ADMIN_PASSWORD:?set OC_ADMIN_PASSWORD in .env}
+
+      # --- Login via Authelia (built-in login service "idp" is not started) ---
+      OC_EXCLUDE_RUN_SERVICES: idp
+      OC_OIDC_ISSUER: https://${SERVER_NAME:?set SERVER_NAME in .env}/auth
+      IDP_DOMAIN: ${SERVER_NAME}            # used by csp.yaml
+      PROXY_OIDC_ACCESS_TOKEN_VERIFY_METHOD: none  # opaque tokens, checked with Authelia (as in opencloud-compose idm/external-authelia.yml)
+      PROXY_OIDC_REWRITE_WELLKNOWN: "true"
+      # Users are created in OpenCloud on their first login, keyed by their Authelia username
+      PROXY_AUTOPROVISION_ACCOUNTS: "true"
+      PROXY_AUTOPROVISION_CLAIM_USERNAME: preferred_username
+      PROXY_AUTOPROVISION_CLAIM_EMAIL: email
+      PROXY_AUTOPROVISION_CLAIM_DISPLAYNAME: name
+      PROXY_AUTOPROVISION_CLAIM_GROUPS: groups
+      # Roles come from Authelia groups (mapping in config/proxy.yaml)
+      PROXY_ROLE_ASSIGNMENT_DRIVER: oidc
+      PROXY_ROLE_ASSIGNMENT_OIDC_CLAIM: groups
+      GRAPH_ASSIGN_DEFAULT_USER_ROLE: "false"
+      # Client IDs the apps discover (must match the clients in Authelia's configuration.yml)
+      WEB_OIDC_CLIENT_ID: opencloud           # web UI's client (default "web"); see /config.json
+      WEB_OIDC_SCOPE: openid profile email groups
+      WEBFINGER_WEB_OIDC_CLIENT_ID: opencloud
+      WEBFINGER_WEB_OIDC_CLIENT_SCOPES: openid profile email groups offline_access
+      WEBFINGER_ANDROID_OIDC_CLIENT_ID: opencloud-android
+      WEBFINGER_ANDROID_OIDC_CLIENT_SCOPES: openid profile email groups offline_access
+      WEBFINGER_IOS_OIDC_CLIENT_ID: opencloud-ios
+      WEBFINGER_IOS_OIDC_CLIENT_SCOPES: openid profile email groups offline_access
+      WEBFINGER_DESKTOP_OIDC_CLIENT_ID: opencloud-desktop
+      WEBFINGER_DESKTOP_OIDC_CLIENT_SCOPES: openid profile email groups offline_access
+      PROXY_CSP_CONFIG_FILE_LOCATION: /etc/opencloud/csp.yaml
+    volumes:
+      - ${OPENCLOUD_CONFIG_DIR:?set OPENCLOUD_CONFIG_DIR in .env}:/etc/opencloud
+      - ${OPENCLOUD_DATA_DIR:?set OPENCLOUD_DATA_DIR in .env}:/var/lib/opencloud
+      - ./config/csp.yaml:/etc/opencloud/csp.yaml:ro
+      - ./config/proxy.yaml:/etc/opencloud/proxy.yaml:ro

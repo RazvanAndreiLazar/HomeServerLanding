@@ -42,7 +42,7 @@ That needs a tagged server. Do this once, even if you add apps later.
 cp .env.example .env
 NAME=$(tailscale status --json | jq -r '.Self.DNSName' | sed 's/\.$//')
 sed -i "s/^SERVER_NAME=.*/SERVER_NAME=$NAME/" .env
-nano .env        # set LAN_IP, and IMMICH_HOST=immich.<tailnet>.ts.net (same tailnet part as SERVER_NAME)
+nano .env        # set LAN_IP, IMMICH_HOST=immich.<tailnet>.ts.net, OPENCLOUD_HOST=opencloud.<tailnet>.ts.net
 chmod 600 .env
 ```
 
@@ -112,7 +112,7 @@ This serves Caddy at `https://<SERVER_NAME>/`.
 
 ## 8. Set up the apps
 
-Follow each app's README: [Immich](../apps/immich/README.md).
+Follow each app's README: [Immich](../apps/immich/README.md), [OpenCloud](../apps/opencloud/README.md).
 To add a new one: [adding-an-app.md](adding-an-app.md).
 
 ## Migrating from the old `Auth/` layout
