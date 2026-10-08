@@ -54,6 +54,11 @@ notifier:
 
 identity_providers:
   oidc:
+    # Browser-based clients (OpenCloud web) call these endpoints from their own host, so they
+    # need CORS headers. Allowed origins = the hosts in the clients' redirect_uris below.
+    cors:
+      endpoints: ['token', 'userinfo', 'revocation', 'introspection']
+      allowed_origins_from_client_redirect_uris: true
     jwks:
       - key_id: 'main'
         algorithm: 'RS256'
@@ -73,3 +78,62 @@ identity_providers:
         scopes: ['openid', 'profile', 'email']
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_post'
+
+      # openCloud (apps/opencloud): one public client per app type, PKCE, no client secret.
+      # From Authelia's openCloud guide; policy and consent aligned with Immich above.
+      # Appended to identity_providers.oidc.clients in gateway/authelia/config/configuration.yml.
+      - client_id: 'opencloud'
+        client_name: 'OpenCloud'
+        public: true
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://{{ env "OPENCLOUD_HOST" }}/'
+          - 'https://{{ env "OPENCLOUD_HOST" }}/oidc-callback.html'
+          - 'https://{{ env "OPENCLOUD_HOST" }}/oidc-silent-redirect.html'
+        scopes: ['openid', 'offline_access', 'groups', 'profile', 'email']
+        response_types: ['code']
+        grant_types: ['authorization_code', 'refresh_token']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'none'
+      - client_id: 'opencloud-android'
+        client_name: 'OpenCloud (Android)'
+        public: true
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris: ['oc://android.opencloud.eu']
+        scopes: ['openid', 'offline_access', 'groups', 'profile', 'email']
+        response_types: ['code']
+        grant_types: ['authorization_code', 'refresh_token']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'none'
+      - client_id: 'opencloud-ios'
+        client_name: 'OpenCloud (iOS)'
+        public: true
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris: ['oc://ios.opencloud.eu', 'oc.ios://ios.opencloud.eu']
+        scopes: ['openid', 'offline_access', 'groups', 'profile', 'email']
+        response_types: ['code']
+        grant_types: ['authorization_code', 'refresh_token']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'none'
+      - client_id: 'opencloud-desktop'
+        client_name: 'OpenCloud (desktop)'
+        public: true
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris: ['http://127.0.0.1', 'http://localhost']   # desktop app listens locally
+        scopes: ['openid', 'offline_access', 'groups', 'profile', 'email']
+        response_types: ['code']
+        grant_types: ['authorization_code', 'refresh_token']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'none'

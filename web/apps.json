@@ -8,5 +8,12 @@
     "guestUrl": "https://immich.{tailnet}/auth/login?autoLaunch=0",
     "lanUrl": "http://{lan}:2283",
     "logoutUrl": "https://immich.{tailnet}/api/auth/logout"
+  },
+  {
+    "id": "opencloud",
+    "name": "OpenCloud",
+    "icon": "☁️",
+    "description": "Files, sharing and sync",
+    "url": "https://opencloud.{tailnet}"
   }
 ]

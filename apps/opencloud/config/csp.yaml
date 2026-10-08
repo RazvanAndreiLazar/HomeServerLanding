@@ -1,0 +1,49 @@
+# Mounted as /etc/opencloud/csp.yaml. Content Security Policy for OpenCloud's web UI.
+# From opencloud-eu/opencloud-compose config/opencloud/csp.yaml, without the office/companion
+# entries (not deployed here). ${IDP_DOMAIN} is the gateway (SERVER_NAME), where Authelia lives.
+directives:
+  child-src:
+    - '''self'''
+  connect-src:
+    - '''self'''
+    - 'blob:'
+    - 'https://raw.githubusercontent.com/opencloud-eu/awesome-apps/'
+    - 'https://${IDP_DOMAIN}/'
+    - 'https://update.opencloud.eu/'
+    - 'https://tile.openstreetmap.org/'
+  default-src:
+    - '''none'''
+  font-src:
+    - '''self'''
+  frame-ancestors:
+    - '''self'''
+  frame-src:
+    - '''self'''
+    - 'blob:'
+    - 'https://embed.diagrams.net/'
+    - 'https://docs.opencloud.eu'
+    - 'https://${IDP_DOMAIN}/'
+  img-src:
+    - '''self'''
+    - 'data:'
+    - 'blob:'
+    - 'https://raw.githubusercontent.com/opencloud-eu/awesome-apps/'
+    - 'https://tile.openstreetmap.org/'
+  manifest-src:
+    - '''self'''
+  media-src:
+    - '''self'''
+  object-src:
+    - '''self'''
+    - 'blob:'
+  script-src:
+    - '''self'''
+    - '''unsafe-inline'''
+    - 'https://${IDP_DOMAIN}/'
+  style-src:
+    - '''self'''
+    - '''unsafe-inline'''
+    - 'blob:'
+  worker-src:
+    - '''self'''
+    - 'blob:'

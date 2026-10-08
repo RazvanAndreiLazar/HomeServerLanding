@@ -1,0 +1,12 @@
+# Mounted as /etc/opencloud/proxy.yaml. Maps Authelia groups to OpenCloud roles.
+# Each user gets exactly one role: the first entry whose group they are in.
+# A user in none of these groups cannot log in to OpenCloud (OpenCloud logs "no roles in user claims").
+role_assignment:
+  driver: 'oidc'
+  oidc_role_mapper:
+    role_claim: 'groups'
+    role_mapping:
+      - role_name: 'admin'
+        claim_value: 'admins'
+      - role_name: 'user'
+        claim_value: 'family'
