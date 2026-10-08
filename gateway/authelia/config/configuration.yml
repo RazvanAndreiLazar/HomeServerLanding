@@ -1,9 +1,11 @@
-# /opt/gateway/authelia/config/configuration.yml
+# gateway/authelia/config/configuration.yml
 # The machine name comes from SERVER_NAME in .env (template filter enabled in docker-compose.yml).
 # Secrets are NOT in this file; they come from /secrets via docker-compose.yml.
 
 server:
   address: 'tcp://:9091/auth'          # portal and API live under https://<SERVER_NAME>/auth
+                                       # (Caddy serves our own login page at /auth/ itself)
+  asset_path: '/assets/'               # logo.png and favicon.ico for Authelia's own pages
 
 log:
   level: 'info'

@@ -1,0 +1,70 @@
+# gateway/caddy/Caddyfile
+# {$SERVER_NAME} and {$LAN_IP} come from .env via docker-compose.yml.
+# Caddy reads this file only at start: restart it after edits (docker compose restart caddy).
+
+{
+	admin off
+	servers {
+		# Trust forwarded headers from tailscale serve (arrives via the Docker bridge),
+		# so Authelia sees the real client address instead of one shared address.
+		trusted_proxies static private_ranges
+	}
+}
+
+# tailscale serve terminates HTTPS and talks plain HTTP to Caddy.
+# These headers tell Authelia the original request was HTTPS on the real name.
+(original_request) {
+	header_up X-Forwarded-Proto https
+	header_up X-Forwarded-Host {$SERVER_NAME}
+}
+
+# Login required: put "import protected" in an app's handle block (see routes/README.md).
+# Each protected path also needs an access_control rule in Authelia's configuration.yml.
+(protected) {
+	forward_auth authelia:9091 {
+		uri /auth/api/authz/forward-auth
+		import original_request
+		copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+	}
+}
+
+:8080 {
+	handle /auth* {
+		# Authelia's portal page is replaced by our own login page (web/login), which calls
+		# Authelia's API. Query parameters (rd, OIDC flow) are kept.
+		# Authelia's original portal stays reachable as a fallback at /auth/?portal=1.
+		@portal {
+			method GET
+			path /auth /auth/
+			not query portal=*
+		}
+		handle @portal {
+			root * /srv/web
+			rewrite * /login/index.html
+			file_server
+		}
+
+		# Everything else: Authelia's API, OIDC provider, consent and logout pages
+		handle {
+			reverse_proxy authelia:9091 {
+				import original_request
+			}
+		}
+	}
+
+	# Machine-specific values for the web pages, so they stay out of the repository
+	handle /config.json {
+		header Content-Type application/json
+		header Cache-Control no-store
+		respond `{"serverName":"{$SERVER_NAME}","lanIp":"{$LAN_IP}"}` 200
+	}
+
+	# Apps served on a path of this address, one file each
+	import routes/*.caddy
+
+	# Landing page, login page and shared assets: public, so guests see the app panel
+	handle {
+		root * /srv/web
+		file_server
+	}
+}

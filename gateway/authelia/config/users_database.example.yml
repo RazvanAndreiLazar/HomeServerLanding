@@ -1,0 +1,12 @@
+# Copy to users_database.yml (never committed) and add one block per person.
+# Hash: sudo docker run --rm -it authelia/authelia:4.39 authelia crypto hash generate argon2
+# Authelia reloads this file on change (watch: true); no restart needed.
+
+users:
+  alice:
+    disabled: false
+    displayname: 'Alice'
+    email: 'alice@example.com'
+    password: '$argon2id$v=19$m=65536,t=3,p=4$REPLACE_WITH_GENERATED_HASH'
+    groups:
+      - 'family'

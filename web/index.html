@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Home Server</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  #auth-btn { visibility: hidden; }    /* shown once the login state is known */
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1 id="greeting">Home Server</h1>
+      <p class="sub" id="clock"></p>
+    </div>
+    <button type="button" class="btn" id="auth-btn">Log In</button>
+  </header>
+  <section class="grid" id="apps" aria-label="Applications"></section>
+  <footer>Reachable only inside the tailnet. Dots show whether each app answered just now.</footer>
+</main>
+<script src="/assets/common.js"></script>
+<script src="/assets/landing.js"></script>
+</body>
+</html>

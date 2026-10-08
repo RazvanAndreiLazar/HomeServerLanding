@@ -1,5 +1,5 @@
-# Auth/gateway/docker-compose.yml
-# Caddy (entry point) + Authelia (login) + whoami (temporary test app)
+# gateway/docker-compose.yml
+# Caddy (entry point, web pages) + Authelia (login, single sign-on).
 # Machine-specific values come from .env in this folder (see .env.example).
 
 services:
@@ -12,26 +12,27 @@ services:
       SERVER_NAME: ${SERVER_NAME:?set SERVER_NAME in .env}
       LAN_IP: ${LAN_IP:?set LAN_IP in .env}
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./landing:/srv/landing:ro
+      - ./caddy:/etc/caddy:ro          # Caddyfile + routes/*.caddy
+      - ../web:/srv/web:ro             # landing page, login page, shared assets
       - caddy_data:/data
     depends_on:
       - authelia
 
   authelia:
-    image: authelia/authelia:4.39      # pin a version; check the latest release before first start
+    image: authelia/authelia:4.39      # pinned; read the release notes before changing
     restart: unless-stopped
     volumes:
       - ./authelia/config:/config
       - ./authelia/secrets:/secrets:ro
+      - ./authelia/assets:/assets:ro   # logo and favicon for Authelia's own pages
     environment:
       TZ: Europe/Bucharest
       SERVER_NAME: ${SERVER_NAME:?set SERVER_NAME in .env}
-      X_AUTHELIA_CONFIG_FILTERS: template   # lets configuration.yml read SERVER_NAME
+      IMMICH_HOST: ${IMMICH_HOST:?set IMMICH_HOST in .env}
+      X_AUTHELIA_CONFIG_FILTERS: template   # lets configuration.yml read env vars and secret files
       AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: /secrets/jwt
       AUTHELIA_SESSION_SECRET_FILE: /secrets/session
       AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: /secrets/storage
-      IMMICH_HOST: ${IMMICH_HOST:?set IMMICH_HOST in .env}
       AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE: /secrets/oidc_hmac
 
 volumes:
