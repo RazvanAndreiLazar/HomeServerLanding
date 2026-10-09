@@ -1,4 +1,12 @@
 
+    # OpenCloud web (apps/opencloud): short access tokens and no refresh token, so the web app
+    # renews through the Authelia session and stops working within ~1 minute of logging out.
+    # Goes under identity_providers.oidc in gateway/authelia/config/configuration.yml.
+    lifespans:
+      custom:
+        opencloud_web:
+          access_token: '1m'
+
       # openCloud (apps/opencloud): one public client per app type, PKCE, no client secret.
       # From Authelia's openCloud guide; policy and consent aligned with Immich above.
       # Appended to identity_providers.oidc.clients in gateway/authelia/config/configuration.yml.
@@ -13,9 +21,12 @@
           - 'https://{{ env "OPENCLOUD_HOST" }}/'
           - 'https://{{ env "OPENCLOUD_HOST" }}/oidc-callback.html'
           - 'https://{{ env "OPENCLOUD_HOST" }}/oidc-silent-redirect.html'
-        scopes: ['openid', 'offline_access', 'groups', 'profile', 'email']
+        # No offline_access/refresh token: the web app renews via the Authelia session instead
+        # (silent renew), so logging out on the gateway also ends OpenCloud in the browser.
+        lifespan: 'opencloud_web'           # 1-minute access tokens, see lifespans above
+        scopes: ['openid', 'groups', 'profile', 'email']
         response_types: ['code']
-        grant_types: ['authorization_code', 'refresh_token']
+        grant_types: ['authorization_code']
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'none'
       - client_id: 'opencloud-android'

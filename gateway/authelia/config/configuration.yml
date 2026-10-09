@@ -67,6 +67,12 @@ identity_providers:
         rules:
           - policy: 'one_factor'
             subject: 'group:admins'
+    # OpenCloud web (apps/opencloud): short access tokens and no refresh token, so the web app
+    # renews through the Authelia session and stops working within ~1 minute of logging out.
+    lifespans:
+      custom:
+        opencloud_web:
+          access_token: '1m'
     jwks:
       - key_id: 'main'
         algorithm: 'RS256'
@@ -101,9 +107,12 @@ identity_providers:
           - 'https://{{ env "OPENCLOUD_HOST" }}/'
           - 'https://{{ env "OPENCLOUD_HOST" }}/oidc-callback.html'
           - 'https://{{ env "OPENCLOUD_HOST" }}/oidc-silent-redirect.html'
-        scopes: ['openid', 'offline_access', 'groups', 'profile', 'email']
+        # No offline_access/refresh token: the web app renews via the Authelia session instead
+        # (silent renew), so logging out on the gateway also ends OpenCloud in the browser.
+        lifespan: 'opencloud_web'           # 1-minute access tokens, see lifespans above
+        scopes: ['openid', 'groups', 'profile', 'email']
         response_types: ['code']
-        grant_types: ['authorization_code', 'refresh_token']
+        grant_types: ['authorization_code']
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'none'
       - client_id: 'opencloud-android'
