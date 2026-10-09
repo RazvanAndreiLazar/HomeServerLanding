@@ -186,3 +186,20 @@ identity_providers:
         scopes: ['openid', 'profile', 'email', 'groups']
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_basic'
+
+      # AdGuard Home (apps/adguard): oauth2-proxy in front of AdGuard's web interface logs in with this client.
+      # Uses the policy admins_only (added with Uptime Kuma, apps/kuma/authelia-clients.yml).
+      # Appended to identity_providers.oidc.clients in gateway/authelia/config/configuration.yml.
+      - client_id: 'adguard'
+        client_name: 'AdGuard Home'
+        client_secret: '{{ secret "/secrets/adguard_client_digest" }}'
+        public: false
+        authorization_policy: 'admins_only'
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://{{ env "ADGUARD_HOST" }}/oauth2/callback'
+        scopes: ['openid', 'profile', 'email', 'groups']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'

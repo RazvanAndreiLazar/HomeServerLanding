@@ -54,4 +54,5 @@ Not committed, created on the server: `gateway/.env`, `gateway/authelia/secrets/
 - [Decisions and open items](docs/decisions.md)
 - [Monitoring](docs/monitoring.md): monitors and alerts in Uptime Kuma and Beszel
 - Apps: [Immich](apps/immich/README.md), [OpenCloud](apps/opencloud/README.md),
-  [Uptime Kuma](apps/kuma/README.md), [Beszel](apps/beszel/README.md)
+  [Uptime Kuma](apps/kuma/README.md), [Beszel](apps/beszel/README.md),
+  [AdGuard Home](apps/adguard/README.md)

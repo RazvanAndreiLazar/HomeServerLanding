@@ -1,0 +1,52 @@
+# apps/adguard/docker-compose.yml
+# AdGuard Home (DNS with ad and tracker blocking) for the tailnet and the home network.
+# DNS (port 53) is published on all addresses. The web interface is only for Authelia users in the
+# group "admins": oauth2-proxy sits in front of it and logs in via Authelia, and AdGuard's own
+# login is off (setup.sh). The web interface itself is not published on any port.
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  adguard:
+    image: adguard/adguardhome:v0.107.79     # pinned; read the release notes before changing
+    restart: unless-stopped
+    ports:
+      # All addresses: the Tailscale IP (tailnet nameserver) and LAN_IP (router's DHCP DNS).
+      # Not bound to the Tailscale IP alone: it may not exist yet when Docker starts at boot.
+      - "53:53/udp"
+      - "53:53/tcp"
+    volumes:
+      - ${ADGUARD_DATA_DIR:?set ADGUARD_DATA_DIR in .env}/work:/opt/adguardhome/work   # query log, statistics, filter lists
+      - ${ADGUARD_DATA_DIR}/conf:/opt/adguardhome/conf                                 # AdGuardHome.yaml (all settings)
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.5   # pinned; read the release notes before changing
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4182:4180"               # only the server itself; tailscale serve forwards here (4180 Kuma, 4181 Beszel)
+    # Uncomment if the container can't resolve <SERVER_NAME> (setup.sh checks this):
+    # extra_hosts:
+    #   - "${SERVER_NAME}:${SERVER_TAILSCALE_IP}"
+    environment:
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_UPSTREAMS: http://adguard:3000
+      OAUTH2_PROXY_REVERSE_PROXY: "true"    # behind tailscale serve
+      # --- Login via Authelia (client "adguard" in gateway/authelia/config/configuration.yml) ---
+      OAUTH2_PROXY_PROVIDER: oidc
+      OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: Home account
+      OAUTH2_PROXY_OIDC_ISSUER_URL: https://${SERVER_NAME:?set SERVER_NAME in .env}/auth
+      OAUTH2_PROXY_CLIENT_ID: adguard
+      OAUTH2_PROXY_CLIENT_SECRET: ${ADGUARD_CLIENT_SECRET:?set ADGUARD_CLIENT_SECRET in .env}
+      OAUTH2_PROXY_REDIRECT_URL: https://${ADGUARD_HOST:?set ADGUARD_HOST in .env}/oauth2/callback
+      OAUTH2_PROXY_SCOPE: openid profile email groups
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"   # straight to the gateway login page
+      # Who gets in: Authelia already refuses everyone outside "admins" (policy admins_only);
+      # this checks the groups claim again.
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_ALLOWED_GROUPS: admins
+      # --- oauth2-proxy's own session cookie on ADGUARD_HOST ---
+      OAUTH2_PROXY_COOKIE_SECRET: ${ADGUARD_COOKIE_SECRET:?set ADGUARD_COOKIE_SECRET in .env}
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_EXPIRE: 24h
+    depends_on:
+      - adguard
