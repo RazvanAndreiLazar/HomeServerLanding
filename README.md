@@ -52,5 +52,6 @@ Not committed, created on the server: `gateway/.env`, `gateway/authelia/secrets/
 - [Setup](docs/setup.md): from a fresh server to a working gateway, plus day-to-day tasks and backup
 - [Adding an app](docs/adding-an-app.md): path-routed or own address with single sign-on
 - [Decisions and open items](docs/decisions.md)
+- [Monitoring](docs/monitoring.md): monitors and alerts in Uptime Kuma and Beszel
 - Apps: [Immich](apps/immich/README.md), [OpenCloud](apps/opencloud/README.md),
-  [Uptime Kuma](apps/kuma/README.md)
+  [Uptime Kuma](apps/kuma/README.md), [Beszel](apps/beszel/README.md)
