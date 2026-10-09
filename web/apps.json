@@ -31,5 +31,13 @@
     "description": "Server resources (admins)",
     "url": "https://beszel.{tailnet}",
     "logoutUrl": "https://beszel.{tailnet}/oauth2/sign_out"
+  },
+  {
+    "id": "adguard",
+    "name": "AdGuard Home",
+    "icon": "🛡️",
+    "description": "Ad blocking (admins)",
+    "url": "https://adguard.{tailnet}",
+    "logoutUrl": "https://adguard.{tailnet}/oauth2/sign_out"
   }
 ]
