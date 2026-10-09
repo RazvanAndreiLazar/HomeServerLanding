@@ -59,6 +59,14 @@ identity_providers:
     cors:
       endpoints: ['token', 'userinfo', 'revocation', 'introspection']
       allowed_origins_from_client_redirect_uris: true
+    # Uptime Kuma (apps/kuma): only the group "admins" may log in. Goes under identity_providers.oidc
+    # in gateway/authelia/config/configuration.yml (next to cors/jwks/clients).
+    authorization_policies:
+      admins_only:
+        default_policy: 'deny'
+        rules:
+          - policy: 'one_factor'
+            subject: 'group:admins'
     jwks:
       - key_id: 'main'
         algorithm: 'RS256'
@@ -137,3 +145,18 @@ identity_providers:
         grant_types: ['authorization_code', 'refresh_token']
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'none'
+      # Uptime Kuma (apps/kuma): oauth2-proxy in front of Kuma logs in with this client.
+      # Appended to identity_providers.oidc.clients in gateway/authelia/config/configuration.yml.
+      - client_id: 'kuma'
+        client_name: 'Uptime Kuma'
+        client_secret: '{{ secret "/secrets/kuma_client_digest" }}'
+        public: false
+        authorization_policy: 'admins_only'   # see authorization_policies above
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://{{ env "KUMA_HOST" }}/oauth2/callback'
+        scopes: ['openid', 'profile', 'email', 'groups']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'

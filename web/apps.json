@@ -15,5 +15,13 @@
     "icon": "☁️",
     "description": "Files, sharing and sync",
     "url": "https://opencloud.{tailnet}"
+  },
+  {
+    "id": "kuma",
+    "name": "Uptime Kuma",
+    "icon": "📈",
+    "description": "Server monitoring (admins)",
+    "url": "https://kuma.{tailnet}",
+    "logoutUrl": "https://kuma.{tailnet}/oauth2/sign_out"
   }
 ]

@@ -58,16 +58,9 @@ function logIn(returnTo = location.origin + "/") {
 }
 
 async function logOut() {
-  // 1. End each app's own session (apps.json "logoutUrl"). Sent "blind" (no-cors): the browser
-  //    includes the app's cookie, the app ends that session, and the page doesn't need the answer.
-  const apps = await appsReady;
-  await Promise.allSettled(apps.filter(a => a.logoutUrl).map(a => {
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 4000);    // don't let an unreachable app block logout
-    return fetch(a.logoutUrl, { method: "POST", mode: "no-cors", credentials: "include", signal: ctrl.signal });
-  }));
-
-  // 2. End the Authelia session.
+  // 1. End the Authelia session first. oauth2-proxy's sign_out (Kuma) redirects to "/", and the
+  //    blind request follows that redirect into a new login; with Authelia still logged in, that
+  //    login would succeed silently and leave a fresh app session behind.
   try {
     await fetch("/auth/api/logout", {
       method: "POST",
@@ -75,6 +68,16 @@ async function logOut() {
       body: "{}",
     });
   } catch {}
+
+  // 2. End each app's own session (apps.json "logoutUrl"). Sent "blind" (no-cors): the browser
+  //    includes the app's cookie, the app ends that session, and the page doesn't need the answer.
+  //    (no-cors requests must follow redirects; "manual" makes the browser drop the request.)
+  const apps = await appsReady;
+  await Promise.allSettled(apps.filter(a => a.logoutUrl).map(a => {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 4000);    // don't let an unreachable app block logout
+    return fetch(a.logoutUrl, { method: "POST", mode: "no-cors", credentials: "include", signal: ctrl.signal });
+  }));
 
   // 3. Reload as a guest.
   location.replace("/");

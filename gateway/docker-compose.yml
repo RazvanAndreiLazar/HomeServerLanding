@@ -32,6 +32,7 @@ services:
       SERVER_NAME: ${SERVER_NAME:?set SERVER_NAME in .env}
       IMMICH_HOST: ${IMMICH_HOST:?set IMMICH_HOST in .env}
       OPENCLOUD_HOST: ${OPENCLOUD_HOST:?set OPENCLOUD_HOST in .env}
+      KUMA_HOST: ${KUMA_HOST:?set KUMA_HOST in .env}
       X_AUTHELIA_CONFIG_FILTERS: template   # lets configuration.yml read env vars and secret files
       AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: /secrets/jwt
       AUTHELIA_SESSION_SECRET_FILE: /secrets/session
