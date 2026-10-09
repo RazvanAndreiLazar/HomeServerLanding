@@ -1,0 +1,89 @@
+# apps/beszel/docker-compose.yml
+# Beszel (server resources: CPU, memory, disks, network, containers), only for Authelia users in
+# the group "admins". oauth2-proxy logs in via Authelia and passes the user's email to Beszel,
+# which logs in the Beszel user with that email (TRUSTED_AUTH_HEADER).
+# Only oauth2-proxy is published (127.0.0.1); the hub talks to the agent over a Unix socket.
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  beszel:
+    image: henrygd/beszel:0.21.0              # pinned; read the release notes before changing
+    restart: unless-stopped
+    networks: [beszel]
+    volumes:
+      - ${BESZEL_DATA_DIR:?set BESZEL_DATA_DIR in .env}:/beszel_data
+      - beszel_socket:/beszel_socket
+    environment:
+      APP_URL: https://${BESZEL_HOST:?set BESZEL_HOST in .env}
+      # Login comes from oauth2-proxy. The header is trusted only from oauth2-proxy's fixed
+      # address: the hub's container address is reachable from the server itself, so without
+      # this any local user could log in by sending the header.
+      TRUSTED_AUTH_HEADER: X-Forwarded-Email
+      TRUSTED_PROXY_IPS: 172.31.250.4
+      DISABLE_PASSWORD_AUTH: "true"
+      # First user, created on the very first start only: a Beszel user and the superuser for
+      # Beszel's admin UI (/_/). The email must match the admin's email in Authelia's users file.
+      USER_EMAIL: ${BESZEL_ADMIN_EMAIL:?set BESZEL_ADMIN_EMAIL in .env}
+      USER_PASSWORD: ${BESZEL_ADMIN_PASSWORD:?set BESZEL_ADMIN_PASSWORD in .env}
+
+  beszel-agent:
+    image: henrygd/beszel-agent:0.21.0        # same version as the hub
+    restart: unless-stopped
+    network_mode: host                        # sees the server's real network interfaces
+    volumes:
+      - beszel_agent_data:/var/lib/beszel-agent
+      - beszel_socket:/beszel_socket
+      # Container stats. Read-only, but the Docker socket still gives root-equivalent access.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Extra disks show up when mounted under /extra-filesystems, e.g.:
+      # - /mnt/data/.beszel:/extra-filesystems/data:ro
+    environment:
+      LISTEN: /beszel_socket/beszel.sock
+      KEY: ${BESZEL_AGENT_KEY:-}              # hub's public key; setup.sh fills it in
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.5   # pinned; read the release notes before changing
+    restart: unless-stopped
+    networks:
+      beszel:
+        ipv4_address: 172.31.250.4            # = TRUSTED_PROXY_IPS above
+    ports:
+      - "127.0.0.1:4181:4180"               # only the server itself; tailscale serve forwards here (4180 is Kuma's)
+    # Uncomment if the container can't resolve <SERVER_NAME> (setup.sh checks this):
+    # extra_hosts:
+    #   - "${SERVER_NAME}:${SERVER_TAILSCALE_IP}"
+    environment:
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_UPSTREAMS: http://beszel:8090
+      OAUTH2_PROXY_REVERSE_PROXY: "true"    # behind tailscale serve
+      OAUTH2_PROXY_PASS_USER_HEADERS: "true"  # X-Forwarded-Email for Beszel (replaces any sent by the browser)
+      # --- Login via Authelia (client "beszel" in gateway/authelia/config/configuration.yml) ---
+      OAUTH2_PROXY_PROVIDER: oidc
+      OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: Home account
+      OAUTH2_PROXY_OIDC_ISSUER_URL: https://${SERVER_NAME:?set SERVER_NAME in .env}/auth
+      OAUTH2_PROXY_CLIENT_ID: beszel
+      OAUTH2_PROXY_CLIENT_SECRET: ${BESZEL_CLIENT_SECRET:?set BESZEL_CLIENT_SECRET in .env}
+      OAUTH2_PROXY_REDIRECT_URL: https://${BESZEL_HOST}/oauth2/callback
+      OAUTH2_PROXY_SCOPE: openid profile email groups
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"   # straight to the gateway login page
+      # Who gets in: Authelia already refuses everyone outside "admins" (policy admins_only);
+      # this checks the groups claim again.
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_ALLOWED_GROUPS: admins
+      # --- oauth2-proxy's own session cookie on BESZEL_HOST ---
+      OAUTH2_PROXY_COOKIE_SECRET: ${BESZEL_COOKIE_SECRET:?set BESZEL_COOKIE_SECRET in .env}
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_EXPIRE: 24h
+    depends_on:
+      - beszel
+
+networks:
+  beszel:
+    ipam:
+      config:
+        - subnet: 172.31.250.0/29             # fixed so oauth2-proxy's address is known; change all three if it clashes
+
+volumes:
+  beszel_socket:
+  beszel_agent_data:
