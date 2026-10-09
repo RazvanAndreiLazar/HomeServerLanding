@@ -1,0 +1,50 @@
+# apps/kuma/docker-compose.yml
+# Uptime Kuma (server monitoring), only for Authelia users in the group "admins".
+# Kuma has no OpenID Connect login, so oauth2-proxy sits in front of it and logs in via Authelia.
+# Kuma itself is not published on any port; only oauth2-proxy is (127.0.0.1).
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  kuma:
+    image: louislam/uptime-kuma:2.5.5        # pinned; read the release notes before changing
+    restart: unless-stopped
+    volumes:
+      - ${KUMA_DATA_DIR:?set KUMA_DATA_DIR in .env}:/app/data
+      # Docker container monitors need the Docker socket. That gives Kuma root-equivalent access
+      # to the server; only uncomment if you need those monitors.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.5   # pinned; read the release notes before changing
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4180:4180"               # only the server itself; tailscale serve forwards here
+    # Uncomment if the container can't resolve <SERVER_NAME> (setup.sh checks this):
+    # extra_hosts:
+    #   - "${SERVER_NAME}:${SERVER_TAILSCALE_IP}"
+    environment:
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_UPSTREAMS: http://kuma:3001
+      OAUTH2_PROXY_REVERSE_PROXY: "true"    # behind tailscale serve
+      # --- Login via Authelia (client "kuma" in gateway/authelia/config/configuration.yml) ---
+      OAUTH2_PROXY_PROVIDER: oidc
+      OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: Home account
+      OAUTH2_PROXY_OIDC_ISSUER_URL: https://${SERVER_NAME:?set SERVER_NAME in .env}/auth
+      OAUTH2_PROXY_CLIENT_ID: kuma
+      OAUTH2_PROXY_CLIENT_SECRET: ${KUMA_CLIENT_SECRET:?set KUMA_CLIENT_SECRET in .env}
+      OAUTH2_PROXY_REDIRECT_URL: https://${KUMA_HOST:?set KUMA_HOST in .env}/oauth2/callback
+      OAUTH2_PROXY_SCOPE: openid profile email groups
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"   # straight to the gateway login page
+      # Who gets in: Authelia already refuses everyone outside "admins" (policy admins_only);
+      # this checks the groups claim again.
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_ALLOWED_GROUPS: admins
+      # --- oauth2-proxy's own session cookie on KUMA_HOST ---
+      OAUTH2_PROXY_COOKIE_SECRET: ${KUMA_COOKIE_SECRET:?set KUMA_COOKIE_SECRET in .env}
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_EXPIRE: 24h
+      # Push monitors (services reporting their own heartbeat) work without login
+      OAUTH2_PROXY_SKIP_AUTH_ROUTES: ^/api/push/
+    depends_on:
+      - kuma

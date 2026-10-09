@@ -50,7 +50,9 @@ services:
       WEB_OIDC_CLIENT_ID: opencloud           # web UI's client (default "web"); see /config.json
       WEB_OIDC_SCOPE: openid profile email groups
       WEBFINGER_WEB_OIDC_CLIENT_ID: opencloud
-      WEBFINGER_WEB_OIDC_CLIENT_SCOPES: openid profile email groups offline_access
+      # No offline_access for the web app: it renews via the Authelia session, so the gateway's
+      # "Log Out" also ends it (within ~1 minute; see README "Logout")
+      WEBFINGER_WEB_OIDC_CLIENT_SCOPES: openid profile email groups
       WEBFINGER_ANDROID_OIDC_CLIENT_ID: opencloud-android
       WEBFINGER_ANDROID_OIDC_CLIENT_SCOPES: openid profile email groups offline_access
       WEBFINGER_IOS_OIDC_CLIENT_ID: opencloud-ios

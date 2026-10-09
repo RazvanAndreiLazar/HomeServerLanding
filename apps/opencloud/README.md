@@ -85,9 +85,28 @@ If the service shows "Pending approval" in the admin console, approve it once.
 
 ## Logout
 
-OpenCloud keeps its own tokens in the browser and refreshes them. The landing page's "Log Out" ends
-the Authelia session but not OpenCloud's; use OpenCloud's own "Log out" as well. There is no
+There is no direct way to end OpenCloud's session from the landing page: Authelia 4.39 has no
+OpenID Connect logout (RP-initiated, front- or back-channel), and the web app keeps its tokens in
+the browser's storage for `<OPENCLOUD_HOST>`, out of the landing page's reach. So there is no
 `logoutUrl` in `web/apps.json` for it.
+
+Instead, the web app's session depends on the Authelia session:
+
+- The web client (`opencloud`) gets no refresh token (no `offline_access`) and its access tokens
+  last 1 minute (`lifespans.custom.opencloud_web` in `configuration.yml`).
+- To renew, the web app asks Authelia in a hidden frame (`oidc-silent-redirect.html`). That only
+  succeeds while the gateway login is active; afterwards it falls back to the login page.
+
+**Shortcoming:** after the landing page's "Log Out", OpenCloud in an open browser tab keeps working
+for up to about a minute (the token's remaining lifetime plus the proxy's 10-second userinfo cache).
+An immediate logout would need Authelia to be asked on every request, which doesn't work here:
+the token stays valid after logout, the Authelia cookie isn't sent to `<OPENCLOUD_HOST>`, and the
+desktop/mobile apps carry no cookie at all. OpenCloud's own "Log out" ends it immediately.
+
+The desktop, Android and iOS apps keep their refresh tokens and are not logged out by the landing
+page (they don't share the browser's login).
+
+Without "remember me", the web app also asks for login again when the Authelia session runs out.
 
 ## Backup
 
@@ -100,8 +119,14 @@ the Authelia session but not OpenCloud's; use OpenCloud's own "Log out" as well.
   CORS headers: `identity_providers.oidc.cors` in `configuration.yml` (origins taken from the
   clients' redirect URIs). Without it, login hangs on "waiting to be redirected" with a CORS
   error on `/auth/api/oidc/token` in the browser console.
-- Because the web app requests `offline_access`, Authelia always shows its consent page once per
-  login, even with `consent_mode: implicit` (Authelia requires explicit consent for refresh tokens).
+- The desktop and mobile apps request `offline_access`, so Authelia shows its consent page once per
+  login there, even with `consent_mode: implicit` (Authelia requires explicit consent for refresh
+  tokens). The web app no longer requests it, so it shouldn't show the consent page.
+- Unverified: that the web app renews through the hidden frame when it has no refresh token, and
+  returns to the login page cleanly when that fails. Test: log in, open OpenCloud, "Log Out" on the
+  landing page, wait a minute, click around in OpenCloud; it should ask for login. If renewal
+  breaks while logged in (logged out every minute), put `offline_access` back in
+  `WEBFINGER_WEB_OIDC_CLIENT_SCOPES` and the `opencloud` client (scopes, `refresh_token` grant).
 
 - Authelia's guide uses `two_factor`; here it is `one_factor` and `consent_mode: implicit`, matching
   Immich (Authelia 4.39 accepts this for public clients).
