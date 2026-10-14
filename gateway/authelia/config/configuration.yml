@@ -203,3 +203,22 @@ identity_providers:
         scopes: ['openid', 'profile', 'email', 'groups']
         userinfo_signed_response_alg: 'none'
         token_endpoint_auth_method: 'client_secret_basic'
+
+      # Jellyfin (apps/jellyfin): the SSO plugin (provider name "authelia") logs in with this client.
+      # From Authelia's Jellyfin guide; policy and consent aligned with Immich.
+      # Appended to identity_providers.oidc.clients in gateway/authelia/config/configuration.yml.
+      - client_id: 'jellyfin'
+        client_name: 'Jellyfin'
+        client_secret: '{{ secret "/secrets/jellyfin_client_digest" }}'
+        public: false
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://{{ env "JELLYFIN_HOST" }}/sso/OID/redirect/authelia'
+        scopes: ['openid', 'profile', 'groups']
+        response_types: ['code']
+        grant_types: ['authorization_code']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_post'

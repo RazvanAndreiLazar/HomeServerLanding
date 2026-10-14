@@ -1,0 +1,35 @@
+# apps/jellyfin/docker-compose.yml
+# Jellyfin (films, series, music) for the tailnet and the home network.
+# In the browser, family members log in via Authelia through the SSO plugin (OpenID Connect);
+# TV and phone apps use Quick Connect or Jellyfin's own login (see README).
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  jellyfin:
+    # Pinned to 10.11: the SSO plugin (4.0.0.x) is built for 10.11. Check the plugin's
+    # compatibility before moving to 12.x; read the release notes before changing.
+    image: jellyfin/jellyfin:10.11.11
+    restart: unless-stopped
+    user: ${JELLYFIN_UID_GID:-1000:1000}    # owner of the config and cache folders; must be able to read the media
+    ports:
+      # All addresses: tailscale serve forwards to 127.0.0.1:8096, and devices on the home network
+      # (TVs) use http://<LAN_IP>:8096 directly.
+      - "8096:8096"
+    # Uncomment if the container can't resolve <SERVER_NAME> (setup.sh checks this):
+    # extra_hosts:
+    #   - "${SERVER_NAME}:${SERVER_TAILSCALE_IP}"
+    environment:
+      JELLYFIN_PublishedServerUrl: https://${JELLYFIN_HOST:?set JELLYFIN_HOST in .env}
+    volumes:
+      - ${JELLYFIN_CONFIG_DIR:?set JELLYFIN_CONFIG_DIR in .env}:/config   # database, users, plugins, metadata
+      - ${JELLYFIN_CACHE_DIR:?set JELLYFIN_CACHE_DIR in .env}:/cache      # transcodes, image cache (can be lost)
+      - ${JELLYFIN_MEDIA_DIR:?set JELLYFIN_MEDIA_DIR in .env}:/media:ro   # films, series, music: read-only
+    # Hardware transcoding on the GTX 1050 Ti (NVENC). Needs the NVIDIA driver and the NVIDIA
+    # Container Toolkit on the server; then uncomment and choose NVENC in Dashboard → Playback.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
