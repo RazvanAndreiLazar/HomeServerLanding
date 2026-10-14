@@ -1,0 +1,38 @@
+# apps/vaultwarden/docker-compose.yml
+# Vaultwarden (password manager, works with the Bitwarden apps and browser extensions).
+# Family members can log in via Authelia (OpenID Connect) or with email + master password; the
+# master password is always needed to unlock the vault (it is the encryption key, not a login).
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  vaultwarden:
+    image: vaultwarden/server:1.37.4          # pinned; read the release notes before changing
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8222:80"                 # only the server itself; tailscale serve forwards here
+    # Uncomment if the container can't resolve <SERVER_NAME> (setup.sh checks this):
+    # extra_hosts:
+    #   - "${SERVER_NAME}:${SERVER_TAILSCALE_IP}"
+    volumes:
+      - ${VAULTWARDEN_DATA_DIR:?set VAULTWARDEN_DATA_DIR in .env}:/data   # database, attachments, keys
+    environment:
+      DOMAIN: https://${VAULTWARDEN_HOST:?set VAULTWARDEN_HOST in .env}
+      # Accounts are created through the Authelia login only (SSO_SIGNUPS_ALLOWED below),
+      # not with the "Create account" form.
+      SIGNUPS_ALLOWED: "false"
+      SHOW_PASSWORD_HINT: "false"
+      # No ADMIN_TOKEN: the admin page (/admin) is off. See README "Admin page" to turn it on.
+
+      # --- Login via Authelia (client "vaultwarden" in gateway/authelia/config/configuration.yml) ---
+      SSO_ENABLED: "true"
+      SSO_ONLY: "false"                      # email + master password login stays (apps, fallback)
+      SSO_SIGNUPS_ALLOWED: "true"            # first Authelia login creates the Vaultwarden account
+      SSO_SIGNUPS_MATCH_EMAIL: "true"        # an existing account with the same email is linked
+      SSO_AUTHORITY: https://${SERVER_NAME:?set SERVER_NAME in .env}/auth
+      SSO_CLIENT_ID: vaultwarden
+      SSO_CLIENT_SECRET: ${VAULTWARDEN_CLIENT_SECRET:?set VAULTWARDEN_CLIENT_SECRET in .env}
+      SSO_SCOPES: email profile
+      SSO_PKCE: "true"
+      # Authelia only checks who you are; Vaultwarden's session (and the apps' staying logged in)
+      # is its own. Without this, sessions would end with Authelia's 1-hour tokens.
+      SSO_AUTH_ONLY_NOT_SESSION: "true"

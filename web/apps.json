@@ -41,6 +41,13 @@
     "logoutUrl": "https://adguard.{tailnet}/oauth2/sign_out"
   },
   {
+    "id": "vaultwarden",
+    "name": "Vaultwarden",
+    "icon": "🔐",
+    "description": "Passwords",
+    "url": "https://vaultwarden.{tailnet}"
+  },
+  {
     "id": "jellyfin",
     "name": "Jellyfin",
     "icon": "🎬",
