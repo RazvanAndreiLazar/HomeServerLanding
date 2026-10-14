@@ -29,6 +29,12 @@ access_control:
         - '^/whoami([/?].*)?$'
       subject: 'group:family'
       policy: 'one_factor'             # password only; inside the tailnet this is reasonable
+    # RustDesk (apps/rustdesk): the server key on the help page /rustdesk/ (gateway/caddy/routes/rustdesk.caddy)
+    - domain: '{{ env "SERVER_NAME" }}'
+      resources:
+        - '^/rustdesk/key$'
+      subject: 'group:family'
+      policy: 'one_factor'
 
 session:
   cookies:

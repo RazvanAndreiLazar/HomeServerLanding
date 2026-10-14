@@ -1,0 +1,30 @@
+# apps/rustdesk/docker-compose.yml
+# RustDesk server (remote desktop: ID server hbbs + relay hbbr) for the tailnet and the home network.
+# Not a web app: the RustDesk clients connect to these ports directly. Only clients with the
+# server's public key (id_ed25519.pub in the data folder) are accepted.
+# Based on rustdesk/rustdesk-server's docker-compose.yml.
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  hbbs:
+    image: rustdesk/rustdesk-server:1.1.16   # pinned; read the release notes before changing
+    restart: unless-stopped
+    command: hbbs -k _                       # "_": accept only clients with this server's key (hbbs's default too)
+    ports:
+      # All addresses: the Tailscale IP and LAN_IP (no ports are forwarded on the router).
+      - "21115:21115"                       # NAT type test
+      - "21116:21116"                       # ID server (TCP: hole punching, connection requests)
+      - "21116:21116/udp"                   # ID server (UDP: registration, heartbeats)
+    volumes:
+      - ${RUSTDESK_DATA_DIR:?set RUSTDESK_DATA_DIR in .env}:/root   # id_ed25519 (the server's key pair), peer database
+    depends_on:
+      - hbbr
+
+  hbbr:
+    image: rustdesk/rustdesk-server:1.1.16   # same version as hbbs
+    restart: unless-stopped
+    command: hbbr -k _                       # without it the relay accepts any client (its default key is empty)
+    ports:
+      - "21117:21117"                       # relay, when the two devices can't connect directly
+    volumes:
+      - ${RUSTDESK_DATA_DIR}:/root          # same key as hbbs

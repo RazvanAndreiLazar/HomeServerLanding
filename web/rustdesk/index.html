@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>RustDesk · Home Server</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  [hidden] { display: none !important; }     /* .field sets display, which would override hidden */
+  .panel .sub a { color: var(--accent); }
+  #lan-note { margin: -8px 0 16px; font-size: .88rem; }
+  input[readonly] { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88rem; }
+</style>
+</head>
+<body>
+<main>
+  <section class="panel">
+    <h1>RustDesk</h1>
+    <p class="sub">Remote desktop for the family's devices. Install RustDesk from
+      <a href="https://rustdesk.com/">rustdesk.com</a>, then enter these under
+      Settings → Network → ID/Relay server.</p>
+    <div class="field">
+      <label for="id-server">ID server</label>
+      <input type="text" id="id-server" readonly>
+    </div>
+    <p class="sub" id="lan-note" hidden>On the home network without Tailscale, use
+      <span id="lan"></span> instead.</p>
+    <div class="field">
+      <label for="relay">Relay server and API server</label>
+      <input type="text" id="relay" placeholder="leave both empty" readonly>
+    </div>
+    <div class="field" id="key-field" hidden>
+      <label for="key">Key</label>
+      <input type="text" id="key" readonly>
+    </div>
+    <p class="alert" id="key-msg" role="status" hidden></p>
+    <button type="button" class="btn primary block" id="login" hidden>Log in to see the key</button>
+    <a class="back" href="/">← Back to the home page</a>
+  </section>
+</main>
+<script src="/assets/common.js"></script>
+<script src="/assets/rustdesk.js"></script>
+</body>
+</html>

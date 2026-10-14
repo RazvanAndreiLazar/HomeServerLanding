@@ -56,6 +56,13 @@
     "lanUrl": "http://{lan}:8096"
   },
   {
+    "id": "rustdesk",
+    "name": "RustDesk",
+    "icon": "🖥️",
+    "description": "Remote desktop (client setup)",
+    "url": "/rustdesk/"
+  },
+  {
     "id": "code-server",
     "name": "code-server",
     "icon": "💻",
