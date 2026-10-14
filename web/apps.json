@@ -47,5 +47,13 @@
     "description": "Films, series and music",
     "url": "https://jellyfin.{tailnet}",
     "lanUrl": "http://{lan}:8096"
+  },
+  {
+    "id": "code-server",
+    "name": "code-server",
+    "icon": "💻",
+    "description": "VS Code in the browser (admins)",
+    "url": "https://code-server.{tailnet}",
+    "logoutUrl": "https://code-server.{tailnet}/oauth2/sign_out"
   }
 ]

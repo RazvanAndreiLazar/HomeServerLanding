@@ -35,6 +35,7 @@ services:
       KUMA_HOST: ${KUMA_HOST:?set KUMA_HOST in .env}
       BESZEL_HOST: ${BESZEL_HOST:?set BESZEL_HOST in .env}
       ADGUARD_HOST: ${ADGUARD_HOST:?set ADGUARD_HOST in .env}
+      CODE_SERVER_HOST: ${CODE_SERVER_HOST:?set CODE_SERVER_HOST in .env}
       JELLYFIN_HOST: ${JELLYFIN_HOST:?set JELLYFIN_HOST in .env}
       X_AUTHELIA_CONFIG_FILTERS: template   # lets configuration.yml read env vars and secret files
       AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: /secrets/jwt
