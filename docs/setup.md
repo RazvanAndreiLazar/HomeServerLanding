@@ -160,6 +160,45 @@ Back up `gateway/` including its ignored files: `.env`, `authelia/secrets/*`,
 `authelia/config/users_database.yml` and `authelia/config/db.sqlite3`. Keep the backup encrypted,
 since it contains the keys and password hashes.
 
+## Troubleshooting
+
+**After a reboot, app logins fail** (Immich "Error in OAuth discovery", OpenCloud "not logged in",
+Jellyfin "Internal server error", or `Name or service not known` / `no such host` for
+`<SERVER_NAME>` in an app's log). The apps can't resolve the gateway name.
+
+Cause: a container copies its DNS servers from the host when it starts. If Docker starts before
+Tailscale, the host still uses the router's DNS, which doesn't know `*.ts.net`, and the container
+keeps that setting until it is restarted.
+
+Fix, once: give Docker a fixed DNS list in `/etc/docker/daemon.json` (keep any other keys, such as
+`runtimes`), then restart Docker, which restarts every container once:
+
+```json
+{
+    "dns": ["100.100.100.100", "192.168.0.1"]
+}
+```
+
+```bash
+sudo systemctl restart docker
+```
+
+`100.100.100.100` is Tailscale's resolver: it answers `*.ts.net` itself and sends everything else
+to the tailnet's nameserver (AdGuard, see [apps/adguard](../apps/adguard/README.md)), so containers
+use AdGuard like any other tailnet device. The router is only a fallback when Tailscale doesn't
+answer. The address never changes, so containers work as soon as Tailscale is up, whatever the
+start order. Apps that contact Authelia at startup (the oauth2-proxy containers of Kuma, AdGuard,
+code-server, Beszel) need `restart: unless-stopped` to retry until then.
+
+Check from inside a container (expect `200`):
+
+```bash
+docker exec immich_server curl -sS -o /dev/null -w "%{http_code}\n" \
+  https://<SERVER_NAME>/auth/.well-known/openid-configuration
+```
+
+Without the fix, `sudo docker restart <container>` for each affected app brings it back.
+
 ## Known limitations
 
 - Sessions live in Authelia's memory. Restarting Authelia logs everyone out, including
