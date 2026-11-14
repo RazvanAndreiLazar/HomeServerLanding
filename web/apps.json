@@ -39,5 +39,35 @@
     "description": "Ad blocking (admins)",
     "url": "https://adguard.{tailnet}",
     "logoutUrl": "https://adguard.{tailnet}/oauth2/sign_out"
+  },
+  {
+    "id": "vaultwarden",
+    "name": "Vaultwarden",
+    "icon": "🔐",
+    "description": "Passwords",
+    "url": "https://vaultwarden.{tailnet}"
+  },
+  {
+    "id": "jellyfin",
+    "name": "Jellyfin",
+    "icon": "🎬",
+    "description": "Films, series and music",
+    "url": "https://jellyfin.{tailnet}",
+    "lanUrl": "http://{lan}:8096"
+  },
+  {
+    "id": "rustdesk",
+    "name": "RustDesk",
+    "icon": "🖥️",
+    "description": "Remote desktop (client setup)",
+    "url": "/rustdesk/"
+  },
+  {
+    "id": "code-server",
+    "name": "code-server",
+    "icon": "💻",
+    "description": "VS Code in the browser (admins)",
+    "url": "https://code-server.{tailnet}",
+    "logoutUrl": "https://code-server.{tailnet}/oauth2/sign_out"
   }
 ]

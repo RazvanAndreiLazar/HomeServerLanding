@@ -11,6 +11,7 @@ services:
     environment:
       SERVER_NAME: ${SERVER_NAME:?set SERVER_NAME in .env}
       LAN_IP: ${LAN_IP:?set LAN_IP in .env}
+      RUSTDESK_KEY: ${RUSTDESK_KEY:-}  # optional; for routes/rustdesk.caddy (apps/rustdesk)
     volumes:
       - ./caddy:/etc/caddy:ro          # Caddyfile + routes/*.caddy
       - ../web:/srv/web:ro             # landing page, login page, shared assets
@@ -35,6 +36,9 @@ services:
       KUMA_HOST: ${KUMA_HOST:?set KUMA_HOST in .env}
       BESZEL_HOST: ${BESZEL_HOST:?set BESZEL_HOST in .env}
       ADGUARD_HOST: ${ADGUARD_HOST:?set ADGUARD_HOST in .env}
+      CODE_SERVER_HOST: ${CODE_SERVER_HOST:?set CODE_SERVER_HOST in .env}
+      VAULTWARDEN_HOST: ${VAULTWARDEN_HOST:?set VAULTWARDEN_HOST in .env}
+      JELLYFIN_HOST: ${JELLYFIN_HOST:?set JELLYFIN_HOST in .env}
       X_AUTHELIA_CONFIG_FILTERS: template   # lets configuration.yml read env vars and secret files
       AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE: /secrets/jwt
       AUTHELIA_SESSION_SECRET_FILE: /secrets/session

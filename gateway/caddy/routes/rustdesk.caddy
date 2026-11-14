@@ -1,0 +1,9 @@
+# RustDesk (apps/rustdesk): the server's public key for the help page web/rustdesk/.
+# RUSTDESK_KEY comes from gateway/.env (apps/rustdesk/scripts/setup.sh sets it); empty until then.
+# The page itself is served from web/ like the landing page; only the key needs the login.
+handle /rustdesk/key {
+	import protected
+	header Content-Type "text/plain; charset=utf-8"
+	header Cache-Control no-store
+	respond "{$RUSTDESK_KEY}" 200
+}

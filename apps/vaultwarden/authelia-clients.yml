@@ -1,0 +1,20 @@
+
+      # Vaultwarden (apps/vaultwarden): Vaultwarden's own SSO login (OpenID Connect).
+      # From Authelia's Vaultwarden guide, without its roles (Vaultwarden 1.37 has none) and
+      # offline_access (Vaultwarden keeps its own session: SSO_AUTH_ONLY_NOT_SESSION).
+      # Appended to identity_providers.oidc.clients in gateway/authelia/config/configuration.yml.
+      - client_id: 'vaultwarden'
+        client_name: 'Vaultwarden'
+        client_secret: '{{ secret "/secrets/vaultwarden_client_digest" }}'
+        public: false
+        authorization_policy: 'one_factor'
+        consent_mode: 'implicit'
+        require_pkce: true
+        pkce_challenge_method: 'S256'
+        redirect_uris:
+          - 'https://{{ env "VAULTWARDEN_HOST" }}/identity/connect/oidc-signin'
+        scopes: ['openid', 'profile', 'email']
+        response_types: ['code']
+        grant_types: ['authorization_code']
+        userinfo_signed_response_alg: 'none'
+        token_endpoint_auth_method: 'client_secret_basic'

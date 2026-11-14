@@ -1,0 +1,60 @@
+# apps/code-server/docker-compose.yml
+# code-server (VS Code in the browser), only for Authelia users in the group "admins".
+# code-server has no OpenID Connect login, so oauth2-proxy sits in front of it and logs in via
+# Authelia; code-server's own password is off (--auth none).
+# code-server itself is not published on any port; only oauth2-proxy is (127.0.0.1).
+# Machine-specific values come from .env in this folder (see .env.example).
+
+services:
+  code-server:
+    image: codercom/code-server:4.141.0      # pinned; read the release notes before changing
+    restart: unless-stopped
+    user: ${CODE_SERVER_UID_GID:-1000:1000}  # owner of the folders below; files are saved as this user
+    command:
+      - --bind-addr=0.0.0.0:8080
+      - --auth=none                          # oauth2-proxy (admins only) is the login
+      - --trusted-origins=${CODE_SERVER_HOST:?set CODE_SERVER_HOST in .env}   # websocket origin check behind the proxies
+      - --disable-telemetry
+      - --disable-update-check               # updates come from changing the pinned image
+    environment:
+      DOCKER_USER: ${CODE_SERVER_USER:-coder}  # user name shown in the terminal
+    volumes:
+      # Settings, extensions, shell history (the container's home folder)
+      - ${CODE_SERVER_DATA_DIR:?set CODE_SERVER_DATA_DIR in .env}/config:/home/coder/.config
+      - ${CODE_SERVER_DATA_DIR}/local:/home/coder/.local
+      # The folder code-server opens. Everything else on the server stays out of reach.
+      - ${CODE_SERVER_PROJECTS_DIR:?set CODE_SERVER_PROJECTS_DIR in .env}:/home/coder/project
+    working_dir: /home/coder/project
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.5   # pinned; read the release notes before changing
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4183:4180"               # only the server itself; tailscale serve forwards here (4180 Kuma, 4181 Beszel, 4182 AdGuard)
+    # Uncomment if the container can't resolve <SERVER_NAME> (setup.sh checks this):
+    # extra_hosts:
+    #   - "${SERVER_NAME}:${SERVER_TAILSCALE_IP}"
+    environment:
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_UPSTREAMS: http://code-server:8080
+      OAUTH2_PROXY_REVERSE_PROXY: "true"    # behind tailscale serve
+      # --- Login via Authelia (client "code-server" in gateway/authelia/config/configuration.yml) ---
+      OAUTH2_PROXY_PROVIDER: oidc
+      OAUTH2_PROXY_PROVIDER_DISPLAY_NAME: Home account
+      OAUTH2_PROXY_OIDC_ISSUER_URL: https://${SERVER_NAME:?set SERVER_NAME in .env}/auth
+      OAUTH2_PROXY_CLIENT_ID: code-server
+      OAUTH2_PROXY_CLIENT_SECRET: ${CODE_SERVER_CLIENT_SECRET:?set CODE_SERVER_CLIENT_SECRET in .env}
+      OAUTH2_PROXY_REDIRECT_URL: https://${CODE_SERVER_HOST}/oauth2/callback
+      OAUTH2_PROXY_SCOPE: openid profile email groups
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"   # straight to the gateway login page
+      # Who gets in: Authelia already refuses everyone outside "admins" (policy admins_only);
+      # this checks the groups claim again.
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_ALLOWED_GROUPS: admins
+      # --- oauth2-proxy's own session cookie on CODE_SERVER_HOST ---
+      OAUTH2_PROXY_COOKIE_SECRET: ${CODE_SERVER_COOKIE_SECRET:?set CODE_SERVER_COOKIE_SECRET in .env}
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_EXPIRE: 24h
+    depends_on:
+      - code-server
