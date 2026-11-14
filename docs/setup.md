@@ -139,6 +139,7 @@ certificates here. Everyone is logged out (sessions live in memory).
 
 **Add a family member.** Generate a hash (step 4), add their block to `users_database.yml`.
 Authelia picks it up without a restart. Then link their app accounts (see each app's README).
+Step by step: [adding_new_user.md](adding_new_user.md).
 
 **Change a password.** Replace the hash in `users_database.yml`.
 
