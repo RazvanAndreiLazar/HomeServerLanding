@@ -26,10 +26,10 @@ services:
       - ${JELLYFIN_MEDIA_DIR:?set JELLYFIN_MEDIA_DIR in .env}:/media:ro   # films, series, music: read-only
     # Hardware transcoding on the GTX 1050 Ti (NVENC). Needs the NVIDIA driver and the NVIDIA
     # Container Toolkit on the server; then uncomment and choose NVENC in Dashboard → Playback.
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
